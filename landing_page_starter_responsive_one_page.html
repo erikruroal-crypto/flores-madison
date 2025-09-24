@@ -4,62 +4,140 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Flores para Madison</title>
+  <meta name="description" content="Botón que genera animaciones de flores amarillas por toda la pantalla.">
   <style>
+    :root{ --bg:#0b0d12; --text:#f7f8fc; --yellow:#ffd84d; --yellow2:#ffc700; }
+    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
-      margin:0;
-      height:100vh;
-      display:grid;
-      place-items:center;
-      background:#0b0d12;
-      color:#fff;
-      overflow:hidden;
-      font-family:sans-serif;
+      margin:0; display:grid; place-items:center; overflow:hidden;
+      background: radial-gradient(900px 500px at 80% -10%, rgba(255,216,77,.18), transparent 60%), var(--bg);
+      color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Noto Sans, Arial;
     }
-    h1{font-size:2rem;margin-bottom:1rem;text-align:center}
+    .card{
+      background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+      border-radius:18px; padding:28px; width:min(92vw,720px); text-align:center;
+      box-shadow:0 10px 30px rgba(0,0,0,.35); position:relative; z-index:2
+    }
+    h1{ margin:0 0 16px; font-size:clamp(1.5rem,4vw,2.6rem); line-height:1.1; font-weight:900 }
+    p{ margin:0 0 18px; opacity:.85 }
     button{
-      padding:1rem 1.5rem;
-      font-size:1.2rem;
-      border:none;
-      border-radius:10px;
-      background:linear-gradient(135deg, #ffe600, #ffb700);
-      color:#222;
-      font-weight:bold;
-      cursor:pointer;
+      font:inherit; font-weight:800; padding:.9rem 1.2rem; border-radius:14px; border:0;
+      background: linear-gradient(135deg, #ffe477, var(--yellow)); color:#221a00; cursor:pointer;
+      box-shadow:0 10px 20px rgba(255,216,77,.25); transition:transform .12s, box-shadow .12s
     }
+    button:hover{ transform:translateY(-1px); box-shadow:0 12px 24px rgba(255,216,77,.35) }
+    .stage{ position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:1 }
     .flower{
-      position:absolute;
-      font-size:24px;
-      pointer-events:none;
-      animation:fall linear forwards;
+      position:absolute; will-change:transform,opacity; opacity:0;
+      animation: floatY var(--dur) linear forwards, sway var(--swayDur) ease-in-out infinite;
+      filter: drop-shadow(0 6px 8px rgba(0,0,0,.25));
     }
-    @keyframes fall {
-      0%{ transform:translateY(-10vh) rotate(0deg); opacity:1; }
-      100%{ transform:translateY(110vh) rotate(360deg); opacity:0; }
+    @keyframes floatY{
+      0%   { transform: translate(var(--x), var(--startY)) scale(var(--s)) rotate(0deg); opacity:.98 }
+      80%  { opacity:.95 }
+      100% { transform: translate(var(--xEnd), var(--endY))   scale(calc(var(--s)*.9)) rotate(360deg); opacity:0 }
+    }
+    @keyframes sway{
+      0%   { transform: translateX(0) }
+      50%  { transform: translateX(18px) }
+      100% { transform: translateX(0) }
     }
   </style>
 </head>
 <body>
-  <div>
+  <div class="card">
     <h1>¿Ves que no es complicado, Madison?</h1>
-    <button id="btn">Hacer florecer 🌼</button>
+    <p>Presiona el botón y deja que la pantalla se llene de flores amarillas extravagantes.</p>
+    <button id="go">Hacer florecer 🌼</button>
   </div>
+
+  <div class="stage" id="stage"></div>
+
   <script>
-    const btn=document.getElementById('btn');
-    const EMOJIS=["🌼","🌻","💛","✨","🌸"];
-    function spawn(){
-      for(let i=0;i<80;i++){
-        const f=document.createElement('div');
-        f.className='flower';
-        f.textContent=EMOJIS[Math.floor(Math.random()*EMOJIS.length)];
-        f.style.left=Math.random()*100+'vw';
-        f.style.fontSize=(20+Math.random()*40)+'px';
-        const dur=3+Math.random()*4;
-        f.style.animationDuration=dur+'s';
-        document.body.appendChild(f);
-        setTimeout(()=>f.remove(), dur*1000);
+    const stage = document.getElementById('stage');
+    const btn = document.getElementById('go');
+
+    // Genera una flor SVG (amarillo garantizado en todos los dispositivos)
+    function yellowFlowerSVG(size=40){
+      const ns = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('width', size);
+      svg.setAttribute('height', size);
+      svg.setAttribute('viewBox', '0 0 100 100');
+
+      const g = document.createElementNS(ns, 'g');
+
+      // pétalos
+      for(let i=0;i<8;i++){
+        const p = document.createElementNS(ns, 'ellipse');
+        p.setAttribute('cx', '50'); p.setAttribute('cy', '25');
+        p.setAttribute('rx', '14'); p.setAttribute('ry', '26');
+        p.setAttribute('fill', 'url(#petalGrad)');
+        p.setAttribute('transform', `rotate(${i*45} 50 50)`);
+        g.appendChild(p);
+      }
+
+      // centro
+      const c = document.createElementNS(ns, 'circle');
+      c.setAttribute('cx','50'); c.setAttribute('cy','50'); c.setAttribute('r','14');
+      c.setAttribute('fill','#ffeb88'); c.setAttribute('stroke','#d1a600'); c.setAttribute('stroke-width','3');
+      g.appendChild(c);
+
+      // defs (degradado pétalo)
+      const defs = document.createElementNS(ns, 'defs');
+      const grad = document.createElementNS(ns, 'linearGradient');
+      grad.setAttribute('id', 'petalGrad');
+      grad.setAttribute('x1', '0'); grad.setAttribute('x2', '0'); grad.setAttribute('y1', '0'); grad.setAttribute('y2', '1');
+      const s1 = document.createElementNS(ns, 'stop'); s1.setAttribute('offset','0%'); s1.setAttribute('stop-color','#fff5b3');
+      const s2 = document.createElementNS(ns, 'stop'); s2.setAttribute('offset','100%'); s2.setAttribute('stop-color','#ffc700');
+      grad.appendChild(s1); grad.appendChild(s2);
+      defs.appendChild(grad);
+
+      svg.appendChild(defs);
+      svg.appendChild(g);
+      return svg;
+    }
+
+    function spawnFlowers(burst=220){
+      const W = innerWidth, H = innerHeight;
+      for(let i=0;i<burst;i++){
+        const wrapper = document.createElement('div');
+        wrapper.className = 'flower';
+
+        const size = 18 + Math.random()*52;           // tamaño variado
+        const x = Math.random() * W;                   // posición inicial X
+        const xEnd = x + (Math.random()*220 - 110);    // deriva lateral
+        const startY = Math.random() * (H * 0.9);      // ahora nacen por TODA la pantalla
+        const endY = startY - (H + 200);               // suben y se desvanecen
+        const s = 0.8 + Math.random()*1.6;
+        const dur = (3.2 + Math.random()*5).toFixed(2) + 's';
+        const swayDur = (2.8 + Math.random()*2).toFixed(2) + 's';
+
+        wrapper.style.left = (x - size/2) + 'px';
+        wrapper.style.top  = (startY - size/2) + 'px';
+        wrapper.style.setProperty('--x', x + 'px');
+        wrapper.style.setProperty('--xEnd', xEnd + 'px');
+        wrapper.style.setProperty('--startY', startY + 'px');
+        wrapper.style.setProperty('--endY', endY + 'px');
+        wrapper.style.setProperty('--s', s);
+        wrapper.style.setProperty('--dur', dur);
+        wrapper.style.setProperty('--swayDur', swayDur);
+
+        const flower = yellowFlowerSVG(size);
+        wrapper.appendChild(flower);
+        stage.appendChild(wrapper);
+
+        // limpiar
+        const ms = parseFloat(dur)*1000 + 300;
+        setTimeout(()=> wrapper.remove(), ms);
       }
     }
-    btn.addEventListener('click', spawn);
+
+    btn.addEventListener('click', () => spawnFlowers(260));
+
+    // (Opcional) auto-lluvia inicial:
+    // spawnFlowers(200);
   </script>
 </body>
 </html>
